@@ -1,0 +1,8 @@
+{
+  "reply": "G'day! We can help with a split system install in Chermside. Could I get your name please?",
+  "intent": "qualify",
+  "risk": false,
+  "risk_reason": "",
+  "confidence": 0.9,
+  "booked_start": null
+}

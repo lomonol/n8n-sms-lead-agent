@@ -1,0 +1,361 @@
+[
+ {
+  "id": "T01",
+  "phone": "+61491572549",
+  "body": "Hi, I'm Sarah in Aspley. Need my split system serviced, any day next week is fine.",
+  "category": "booking",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "reply asks one question or offers a time"
+ },
+ {
+  "id": "T02",
+  "phone": "+61491572549",
+  "body": "Thursday 19 Nov at 10am works for me",
+  "category": "booking",
+  "ok_intents": [
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "event created, lead booked"
+ },
+ {
+  "id": "T03",
+  "phone": "+61491572665",
+  "body": "G'day, Mark here from Stafford. Aircon is blowing warm air, would like someone out this week.",
+  "category": "booking",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "reply asks one question or offers a time"
+ },
+ {
+  "id": "T04",
+  "phone": "+61491572665",
+  "body": "Friday 20 Nov at 1pm suits me",
+  "category": "booking",
+  "ok_intents": [
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "event created, lead booked"
+ },
+ {
+  "id": "T05",
+  "phone": "+61491572983",
+  "body": "Looking for a quote to install 2 split systems at my place in Carindale. Name's Priya.",
+  "category": "booking",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "reply asks one question or offers a time"
+ },
+ {
+  "id": "T06",
+  "phone": "+61491572983",
+  "body": "Monday 23 Nov at 10am please",
+  "category": "booking",
+  "ok_intents": [
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "event created, lead booked"
+ },
+ {
+  "id": "T07",
+  "phone": "+61491573770",
+  "body": "Hi it's Tom in Wynnum, need a split system clean, flexible on timing",
+  "category": "booking",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "reply asks one question or offers a time"
+ },
+ {
+  "id": "T08",
+  "phone": "+61491573770",
+  "body": "Monday 23 Nov at 10am would be good",
+  "category": "booking",
+  "ok_intents": [
+   "book",
+   "qualify"
+  ],
+  "expect_risky": false,
+  "expect": "slot taken by T06: no second event, another time offered"
+ },
+ {
+  "id": "T09",
+  "phone": "+61491573087",
+  "body": "Do you do aircon repairs in Chermside?",
+  "category": "qualifying",
+  "ok_intents": [
+   "enquiry",
+   "qualify"
+  ],
+  "expect_risky": false,
+  "expect": "asks one question"
+ },
+ {
+  "id": "T10",
+  "phone": "+61491574118",
+  "body": "Hi, my unit makes a loud rattling noise. Can someone take a look?",
+  "category": "qualifying",
+  "ok_intents": [
+   "enquiry",
+   "qualify"
+  ],
+  "expect_risky": false,
+  "expect": "asks one question"
+ },
+ {
+  "id": "T11",
+  "phone": "+61491574632",
+  "body": "Need an aircon installed in my new granny flat at Everton Park",
+  "category": "qualifying",
+  "ok_intents": [
+   "enquiry",
+   "qualify"
+  ],
+  "expect_risky": false,
+  "expect": "asks one question"
+ },
+ {
+  "id": "T12",
+  "phone": "+61491575254",
+  "body": "Do you service Ipswich?",
+  "category": "qualifying",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "other"
+  ],
+  "expect_risky": false,
+  "expect": "answers from service area"
+ },
+ {
+  "id": "T13",
+  "phone": "+61491575789",
+  "body": "Can you come today? It's 38 degrees and the aircon died, I'm in Nundah",
+  "category": "qualifying",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "no same-day promise (earliest next business day)"
+ },
+ {
+  "id": "T14",
+  "phone": "+61491576398",
+  "body": "How much to install a 2.5kW split?",
+  "category": "price",
+  "ok_intents": [
+   "price"
+  ],
+  "expect_risky": true,
+  "expect": "no number in reply; waits for approval"
+ },
+ {
+  "id": "T15",
+  "phone": "+61491576801",
+  "body": "What's your call-out fee?",
+  "category": "price",
+  "ok_intents": [
+   "price"
+  ],
+  "expect_risky": true,
+  "expect": "no number in reply; waits for approval"
+ },
+ {
+  "id": "T16",
+  "phone": "+61491573087",
+  "body": "Ballpark price for a repair?",
+  "category": "price",
+  "ok_intents": [
+   "price"
+  ],
+  "expect_risky": true,
+  "expect": "no number in reply; waits for approval"
+ },
+ {
+  "id": "T17",
+  "phone": "+61491577426",
+  "body": "Do you price match? Got a quote for $1,200 from another mob",
+  "category": "price",
+  "ok_intents": [
+   "price"
+  ],
+  "expect_risky": true,
+  "expect": "no number in reply; waits for approval"
+ },
+ {
+  "id": "T18",
+  "phone": "+61491577644",
+  "body": "Your tech scratched my floorboards moving the ladder. Who do I talk to?",
+  "category": "complaint",
+  "ok_intents": [
+   "complaint",
+   "handoff"
+  ],
+  "expect_risky": true,
+  "expect": "waits for approval; lead handoff"
+ },
+ {
+  "id": "T19",
+  "phone": "+61491578957",
+  "body": "Unit you installed last month is already leaking. Pretty annoyed.",
+  "category": "complaint",
+  "ok_intents": [
+   "complaint",
+   "handoff"
+  ],
+  "expect_risky": true,
+  "expect": "waits for approval; lead handoff"
+ },
+ {
+  "id": "T20",
+  "phone": "+61491574118",
+  "body": "Actually the last bloke you sent didn't fix it properly, I want a refund",
+  "category": "complaint",
+  "ok_intents": [
+   "complaint",
+   "handoff"
+  ],
+  "expect_risky": true,
+  "expect": "waits for approval; lead handoff"
+ },
+ {
+  "id": "T21",
+  "phone": "+61491572549",
+  "body": "Something came up, need to cancel Thursday's visit sorry",
+  "category": "cancel",
+  "ok_intents": [
+   "cancel",
+   "handoff"
+  ],
+  "expect_risky": true,
+  "expect": "waits for approval"
+ },
+ {
+  "id": "T22",
+  "phone": "+61491572665",
+  "body": "Can we move Friday's booking to next week instead?",
+  "category": "cancel",
+  "ok_intents": [
+   "reschedule",
+   "handoff"
+  ],
+  "expect_risky": true,
+  "expect": "waits for approval"
+ },
+ {
+  "id": "T23",
+  "phone": "+61491574632",
+  "body": "STOP",
+  "category": "stop",
+  "ok_intents": [
+   "opt_out"
+  ],
+  "expect_risky": false,
+  "expect": "lead opted_out; one confirmation; agent not called"
+ },
+ {
+  "id": "T24",
+  "phone": "+61491574632",
+  "body": "hello? are you still there",
+  "category": "stop",
+  "ok_intents": [
+   "after_opt_out"
+  ],
+  "expect_risky": false,
+  "expect": "logged blocked; no reply"
+ },
+ {
+  "id": "T25",
+  "phone": "+61491578148",
+  "body": "unsubscribe",
+  "category": "stop",
+  "ok_intents": [
+   "opt_out"
+  ],
+  "expect_risky": false,
+  "expect": "lead opted_out; one confirmation; agent not called"
+ },
+ {
+  "id": "T26",
+  "phone": "+61491578888",
+  "body": "what's the cricket score",
+  "category": "off_topic",
+  "ok_intents": [
+   "off_topic",
+   "other"
+  ],
+  "expect_risky": false,
+  "expect": "polite redirect"
+ },
+ {
+  "id": "T27",
+  "phone": "+61491579212",
+  "body": "Can you recommend a good plumber?",
+  "category": "off_topic",
+  "ok_intents": [
+   "off_topic",
+   "other",
+   "enquiry"
+  ],
+  "expect_risky": false,
+  "expect": "polite redirect"
+ },
+ {
+  "id": "T28",
+  "phone": "+61491579760",
+  "body": "lol wrong number sorry",
+  "category": "off_topic",
+  "ok_intents": [
+   "off_topic",
+   "other"
+  ],
+  "expect_risky": false,
+  "expect": "polite close"
+ },
+ {
+  "id": "T29",
+  "phone": "+61491579455",
+  "body": "Hi, can I book a clean for next week?",
+  "category": "brightsmile",
+  "ok_intents": [
+   "enquiry",
+   "qualify",
+   "book"
+  ],
+  "expect_risky": false,
+  "expect": "replies as BrightSmile Dental"
+ },
+ {
+  "id": "T30",
+  "phone": "+61491579455",
+  "body": "Also I've got a really sore swollen tooth",
+  "category": "brightsmile",
+  "ok_intents": [
+   "handoff",
+   "complaint",
+   "other"
+  ],
+  "expect_risky": true,
+  "expect": "handoff, waits for approval"
+ }
+]

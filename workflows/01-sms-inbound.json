@@ -1,0 +1,1089 @@
+{
+  "name": "SMS 01 Inbound",
+  "nodes": [
+    {
+      "id": "f93d7174-2133-4abe-8bdd-e209a31c9cc2",
+      "name": "Inbound SMS",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        288
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sms-inbound",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ME",
+          "name": "SMS Webhook Token"
+        }
+      }
+    },
+    {
+      "id": "42b1c0f9-46d4-487f-9779-17b7df87532a",
+      "name": "Ack provider",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        288
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<Response></Response>",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "94eb6cf8-1a05-473d-ab41-7eedf43915fe",
+      "name": "Normalise",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        288
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "phone",
+              "value": "={{ ($json.body.From ?? '').replace(/[\\s()-]/g, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "body",
+              "value": "={{ ($json.body.Body ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "body_upper",
+              "value": "={{ ($json.body.Body ?? '').trim().toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "test_label",
+              "value": "={{ $json.body.test_label ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "received_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false
+      }
+    },
+    {
+      "id": "859348b7-68ef-4a23-90a9-e9e14d50695a",
+      "name": "Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.phone }}",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              },
+              "rightValue": "^\\+\\d{8,15}$"
+            },
+            {
+              "leftValue": "={{ $json.body }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "1cf37352-a911-4486-b62a-b8cc2b569f2a",
+      "name": "Get settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        192
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_SETTINGS_TABLE_ID"
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "ef9f9b78-686c-4f67-870e-9189bed3376f",
+      "name": "Get lead",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_LEADS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalise').item.json.phone }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "71a41753-0afb-4a3e-bcd8-9d9b82fb9ca3",
+      "name": "Is STOP?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ['STOP','STOP ALL','UNSUBSCRIBE','END','QUIT'].includes($('Normalise').item.json.body_upper) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "e721c404-0dbb-4350-9d06-df771597d8c2",
+      "name": "Mark opted out",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_LEADS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalise').item.json.phone }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "status": "opted_out",
+            "last_inbound_at": "={{ $('Normalise').item.json.received_at }}",
+            "profile_key": "={{ $('Get lead').item.json.profile_key || $('Get settings').item.json.active_profile }}",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_inbound_at",
+              "displayName": "last_inbound_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_key",
+              "displayName": "profile_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c5aee1ac-cb61-46b1-b33f-632cb21045dd",
+      "name": "Log STOP",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_MESSAGES_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "direction": "in",
+            "kind": "inbound",
+            "intent": "opt_out",
+            "approval": "n/a",
+            "body": "={{ $('Normalise').item.json.body }}",
+            "created_at": "={{ $('Normalise').item.json.received_at }}",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "direction",
+              "displayName": "direction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval",
+              "displayName": "approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "793abd13-57bb-4a89-a1eb-c3befabc381c",
+      "name": "Already opted out?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        288
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Get lead').item.json.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "opted_out"
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2d6bd5be-848a-4d74-8459-9230eaf505f0",
+      "name": "Log only",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        192
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_MESSAGES_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "direction": "in",
+            "kind": "inbound",
+            "intent": "after_opt_out",
+            "approval": "blocked",
+            "body": "={{ $('Normalise').item.json.body }}",
+            "created_at": "={{ $('Normalise').item.json.received_at }}",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "direction",
+              "displayName": "direction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval",
+              "displayName": "approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4638848d-2367-44e9-b185-f0f81f7acbcf",
+      "name": "Upsert lead",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        384
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_LEADS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalise').item.json.phone }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "status": "={{ $('Get lead').item.json.status || 'new' }}",
+            "profile_key": "={{ $('Get lead').item.json.profile_key || $('Get settings').item.json.active_profile }}",
+            "last_inbound_at": "={{ $('Normalise').item.json.received_at }}",
+            "reactivation_count": "={{ $('Get lead').item.json.reactivation_count ?? 0 }}",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_key",
+              "displayName": "profile_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_inbound_at",
+              "displayName": "last_inbound_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reactivation_count",
+              "displayName": "reactivation_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d3379a3e-eff7-4ba6-818c-142362c05e28",
+      "name": "Log inbound",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        384
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_MESSAGES_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "direction": "in",
+            "kind": "inbound",
+            "intent": "",
+            "approval": "n/a",
+            "body": "={{ $('Normalise').item.json.body }}",
+            "created_at": "={{ $('Normalise').item.json.received_at }}",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "direction",
+              "displayName": "direction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval",
+              "displayName": "approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8a0dbebb-ee5a-4b3f-b35a-da5c9130b68d",
+      "name": "Ignored",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        896,
+        384
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "65337a00-f473-46dc-85c9-c6f9dd6a8d6d",
+      "name": "Confirm opt-out",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "WORKFLOW_ID_sms-03-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "body": "You're unsubscribed and won't get more texts from us.",
+            "kind": "opt_out_confirm",
+            "risky": false,
+            "risk_reason": "",
+            "intent": "opt_out",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "risky",
+              "displayName": "risky",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "boolean"
+            },
+            {
+              "id": "risk_reason",
+              "displayName": "risk_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ]
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "6939a761-5a8c-43ba-b569-50929d5320a3",
+      "name": "To agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2240,
+        384
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "WORKFLOW_ID_sms-02-agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Normalise').item.json.phone }}",
+            "body": "={{ $('Normalise').item.json.body }}",
+            "profile_key": "={{ $('Get lead').item.json.profile_key || $('Get settings').item.json.active_profile }}",
+            "test_label": "={{ $('Normalise').item.json.test_label }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "profile_key",
+              "displayName": "profile_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ]
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Inbound SMS": {
+      "main": [
+        [
+          {
+            "node": "Ack provider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ack provider": {
+      "main": [
+        [
+          {
+            "node": "Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise": {
+      "main": [
+        [
+          {
+            "node": "Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid?": {
+      "main": [
+        [
+          {
+            "node": "Get settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get settings": {
+      "main": [
+        [
+          {
+            "node": "Get lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get lead": {
+      "main": [
+        [
+          {
+            "node": "Is STOP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is STOP?": {
+      "main": [
+        [
+          {
+            "node": "Mark opted out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Already opted out?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark opted out": {
+      "main": [
+        [
+          {
+            "node": "Log STOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already opted out?": {
+      "main": [
+        [
+          {
+            "node": "Log only",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert lead": {
+      "main": [
+        [
+          {
+            "node": "Log inbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log STOP": {
+      "main": [
+        [
+          {
+            "node": "Confirm opt-out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log inbound": {
+      "main": [
+        [
+          {
+            "node": "To agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "WORKFLOW_ID_sms-99-errors"
+  },
+  "active": false
+}

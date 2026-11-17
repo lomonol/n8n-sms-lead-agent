@@ -1,0 +1,568 @@
+{
+  "name": "SMS 04 Reactivation",
+  "nodes": [
+    {
+      "id": "b99ef8e0-a3bb-47cf-89fe-8e2e43d043cb",
+      "name": "Daily 10am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 10,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "64592278-6edb-48f9-a849-62b96cdec73c",
+      "name": "Get settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        300,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_SETTINGS_TABLE_ID"
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "bbe50a52-0ac6-4604-b754-eddccd744e73",
+      "name": "Get profile",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_BUSINESS_PROFILE_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "profile_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.active_profile }}"
+            }
+          ]
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d74a9f38-f461-4c31-805c-fa174667ffd0",
+      "name": "Get leads",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        820,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_LEADS_TABLE_ID"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "775f722c-371e-4501-907c-2461e7b1ce32",
+      "name": "Quiet leads",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.4,
+      "position": [
+        1080,
+        100
+      ],
+      "parameters": {
+        "looseTypeValidation": true,
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "opted_out",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "booked",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "handoff",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "leftValue": "={{ $json.last_inbound_at }}",
+              "rightValue": "={{ $now.minus($('Get settings').first().json.reactivation_days, 'days') }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "before"
+              }
+            },
+            {
+              "leftValue": "={{ $json.reactivation_count ?? 0 }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "leftValue": "={{ !$json.last_outbound_at || new Date($json.last_outbound_at) < $now.minus(7, 'days').toJSDate() }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "22d10392-499c-4a28-80f6-3532292ceb85",
+      "name": "Cap",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        100
+      ],
+      "parameters": {
+        "maxItems": "={{ $('Get settings').first().json.reactivation_max_per_run }}",
+        "keep": "firstItems"
+      }
+    },
+    {
+      "id": "d4e50b04-f02a-499d-a3cc-b63d6231ef1a",
+      "name": "Write nudge",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1600,
+        100
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Business: {{ $('Get profile').first().json.business_name }}\nServices: {{ $('Get profile').first().json.services }}\nTone: {{ $('Get profile').first().json.tone }}\n\nCustomer name: {{ $json.name }}\nWhat they asked about: {{ $json.job_type }}\nSuburb: {{ $json.suburb }}\n\nWrite one friendly check-in text, max 160 characters, mention the business name and what they asked about, end with: Reply STOP to opt out. Return only the text message.",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You write short, friendly SMS check-ins for a small local business, in the voice described in the business details. Plain text only, no emojis, no quotes, no price quotes."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dac63e44-180f-43df-a444-c60c5c7b2d3d",
+      "name": "Chat model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1600,
+        340
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "nvidia/nemotron-3.5-super-vl-120b-a12b"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1500
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_ME",
+          "name": "NVIDIA Build account"
+        }
+      }
+    },
+    {
+      "id": "30bf583e-8367-4005-9a68-469dc5837bd8",
+      "name": "Ensure opt-out",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1860,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "body",
+              "type": "string",
+              "value": "={{ $json.text.includes('STOP') ? $json.text.trim() : $json.text.trim() + ' Reply STOP to opt out.' }}"
+            },
+            {
+              "id": "a2",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Cap').item.json.phone }}"
+            },
+            {
+              "id": "a3",
+              "name": "reactivation_count",
+              "type": "number",
+              "value": "={{ $('Cap').item.json.reactivation_count ?? 0 }}"
+            },
+            {
+              "id": "a4",
+              "name": "test_label",
+              "type": "string",
+              "value": "={{ $('Cap').item.json.test_label ?? '' }}"
+            }
+          ]
+        },
+        "includeOtherFields": false
+      }
+    },
+    {
+      "id": "1fcc9c4d-941b-4e99-a8e1-85d00437fb7a",
+      "name": "Mark nudged",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2120,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_LEADS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "cold",
+            "reactivation_count": "={{ ($json.reactivation_count ?? 0) + 1 }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        }
+      }
+    },
+    {
+      "id": "5474f6ca-33e3-48e7-bf59-26f39039dcee",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "d6b6e363-b98e-472d-9ca0-f047f9590930",
+      "name": "To send",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2380,
+        100
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "WORKFLOW_ID_sms-03-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Ensure opt-out').item.json.phone }}",
+            "body": "={{ $('Ensure opt-out').item.json.body }}",
+            "kind": "reactivation",
+            "risky": "={{ $('Get settings').first().json.reactivation_needs_approval }}",
+            "risk_reason": "reactivation batch",
+            "intent": "reactivation",
+            "test_label": "={{ $('Ensure opt-out').item.json.test_label }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "risky",
+              "displayName": "risky",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "boolean"
+            },
+            {
+              "id": "risk_reason",
+              "displayName": "risk_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "test_label",
+              "displayName": "test_label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ]
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 10am": {
+      "main": [
+        [
+          {
+            "node": "Get settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get settings": {
+      "main": [
+        [
+          {
+            "node": "Get profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get profile": {
+      "main": [
+        [
+          {
+            "node": "Get leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get leads": {
+      "main": [
+        [
+          {
+            "node": "Quiet leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiet leads": {
+      "main": [
+        [
+          {
+            "node": "Cap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cap": {
+      "main": [
+        [
+          {
+            "node": "Write nudge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write nudge": {
+      "main": [
+        [
+          {
+            "node": "Ensure opt-out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write nudge",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure opt-out": {
+      "main": [
+        [
+          {
+            "node": "Mark nudged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now": {
+      "main": [
+        [
+          {
+            "node": "Get settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark nudged": {
+      "main": [
+        [
+          {
+            "node": "To send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "WORKFLOW_ID_sms-99-errors",
+    "timezone": "Australia/Brisbane"
+  },
+  "active": false
+}

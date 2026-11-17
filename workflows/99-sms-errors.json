@@ -1,0 +1,99 @@
+{
+  "name": "SMS 99 Errors",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "92a44178-00d7-4c88-98df-0bc06477ada2",
+      "name": "On error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SMS_SETTINGS_TABLE_ID"
+        },
+        "returnAll": true
+      },
+      "id": "135a5f3a-519f-4ec2-84f8-145bdcc5598e",
+      "name": "Get settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "YOUR_DISCORD_SERVER_ID",
+          "mode": "list",
+          "cachedResultName": "Your Discord server",
+          "cachedResultUrl": "https://discord.com/channels/YOUR_DISCORD_SERVER_ID"
+        },
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.discord_channel_id }}"
+        },
+        "content": "=Warning: {{ $('On error').item.json.workflow.name }} failed at {{ $('On error').item.json.execution.lastNodeExecuted }}: {{ $('On error').item.json.execution.error.message }} - {{ $('On error').item.json.execution.url }}",
+        "options": {}
+      },
+      "id": "c2941a73-dc12-403c-83a2-fe3f651e4b28",
+      "name": "Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        528,
+        0
+      ],
+      "credentials": {
+        "discordBotApi": {
+          "id": "REPLACE_ME",
+          "name": "Discord Bot account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On error": {
+      "main": [
+        [
+          {
+            "node": "Get settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get settings": {
+      "main": [
+        [
+          {
+            "node": "Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "active": false
+}

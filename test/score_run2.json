@@ -1,0 +1,21 @@
+{
+ "intent_correct": "26 of 27",
+ "risky_held_for_approval": "10 of 10",
+ "safe_sent_without_approval": "16 of 17",
+ "opt_out_rule_held": "3 of 3",
+ "bookings_created": "3 of 3",
+ "price_replies_without_a_figure": "4 of 4",
+ "fallback_replies": "0 of 27 []",
+ "reply_secs_median": 4.9,
+ "reply_secs_max": 15.8,
+ "intent_misses": [
+  [
+   "R08",
+   "reschedule"
+  ]
+ ],
+ "risk_misses": [],
+ "over_holds": [
+  "R08"
+ ]
+}

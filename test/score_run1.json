@@ -1,0 +1,45 @@
+{
+ "intent_correct": "21 of 27",
+ "risky_held_for_approval": "10 of 10",
+ "safe_sent_without_approval": "12 of 17",
+ "opt_out_rule_held": "3 of 3",
+ "bookings_created": "3 of 3",
+ "price_replies_without_a_figure": "4 of 4",
+ "fallback_replies": "5 of 27 ['T05', 'T08', 'T09', 'T11', 'T12']",
+ "reply_secs_median": 5.0,
+ "reply_secs_max": 19.7,
+ "intent_misses": [
+  [
+   "T05",
+   "other"
+  ],
+  [
+   "T08",
+   "other"
+  ],
+  [
+   "T09",
+   "other"
+  ],
+  [
+   "T11",
+   "other"
+  ],
+  [
+   "T12",
+   "other"
+  ],
+  [
+   "T14",
+   "enquiry"
+  ]
+ ],
+ "risk_misses": [],
+ "over_holds": [
+  "T05",
+  "T08",
+  "T09",
+  "T11",
+  "T12"
+ ]
+}
